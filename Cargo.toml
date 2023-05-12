@@ -6,7 +6,7 @@ description = "local liminal archiver for webpages"
 license = "MIT"
 readme = "README.md"
 documentation = "https://github.com/sigh-gone/lolchive/"
-homepage = "crates.io"
+homepage = "https://crates.io"
 
 
 
