@@ -33,16 +33,11 @@ impl FantocciniCrawler {
         let mut i: usize = 0;
         let mut ret_vec: Vec<String> = vec![];
 
-        while i < num_of_pages && i < visited.len() {
+        while i <= num_of_pages && i < visited.len() {
             if self.fclient.goto(&visited[i]).await.is_err() {
                 i += 1;
                 continue;
             }
-            let screenshot = self
-                .fclient
-                .screenshot()
-                .await
-                .expect("could not screenshot");
 
             if let Ok(body) = self.fclient.source().await {
                 let record = HtmlRecord::new(url.to_string(), body);
@@ -53,8 +48,18 @@ impl FantocciniCrawler {
                         }
                     }
                 }
-                if let Ok(path) = save_page(record, directory, screenshot).await {
-                    ret_vec.push(path);
+
+                if let Ok(image) = self
+                .fclient
+                .screenshot()
+                .await {
+                    if let Ok(path) = save_page(record, directory, Some(image)).await {
+                        ret_vec.push(path);
+                    }
+                }else{
+                    if let Ok(path) = save_page(record, directory, None).await {
+                        ret_vec.push(path);
+                    }
                 }
             } else {
                 i += 1;
@@ -79,7 +84,7 @@ impl BasicCrawler {
         let mut i: usize = 0;
         let mut ret_vec: Vec<String> = vec![];
 
-        while i < num_of_pages && i < visited.len() {
+        while i <= num_of_pages && i < visited.len() {
             if let Ok(record) = client::fetch_html_record(&visited[i]).await {
                 match record.domain_anchors() {
                     Some(links) => {
@@ -91,7 +96,7 @@ impl BasicCrawler {
                     }
                     None => {}
                 }
-                if let Ok(path) = save_page(record, directory, vec![]).await {
+                if let Ok(path) = save_page(record, directory, None).await {
                     ret_vec.push(path);
                 }
             }

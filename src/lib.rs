@@ -3,17 +3,17 @@ pub mod crawler;
 pub mod html;
 pub mod web_archiver;
 
-macro_rules! aw {
-    ($e:expr) => {
-        tokio_test::block_on($e)
-    };
-}
-
 //archiver tests
 #[cfg(test)]
 mod tests {
     use crate::web_archiver::{BasicArchiver, FantocciniArchiver};
     use dirs;
+
+    macro_rules! aw {
+        ($e:expr) => {
+            tokio_test::block_on($e)
+        };
+    }
 
     #[test]
     fn fantoccini_single() {

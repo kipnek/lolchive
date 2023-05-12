@@ -17,7 +17,7 @@ FantocciniArchiver
     //use the connection string to pass in, this is where geckodriver is running
     let connection_string = "http://localhost:4444";
 
-    //set up absolute pathe to where you want it to store archive
+    //set up absolute path to where you want it to store archive
     let home_dir = dirs::home_dir().expect("Failed to get home directory");
     let new_dir = format!("{}{}", home_dir.to_str().unwrap(), "/Projects/archive_test");
 

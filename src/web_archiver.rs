@@ -31,6 +31,7 @@ impl FantocciniArchiver {
             return Err(format!("could not go to url {}", url));
         }
         let _ = self.fclient.wait().at_most(Duration::from_secs(10));
+
         let screen_shot = self
             .fclient
             .screenshot()
@@ -39,7 +40,7 @@ impl FantocciniArchiver {
         let body = self.fclient.source().await.expect("can't carse to html");
 
         let record = HtmlRecord::new(url.to_string(), body);
-        match save_page(record, path, screen_shot).await {
+        match save_page(record, path, Some(screen_shot)).await {
             Ok(archive_path) => Ok(archive_path),
             Err(e) => Err(e),
         }
@@ -61,11 +62,21 @@ impl FantocciniArchiver {
             let body = self.fclient.source().await.expect("can't carse to html");
 
             let record = HtmlRecord::new(url.to_string(), body);
-            match save_page(record, path, vec![]).await {
-                Ok(archive_path) => {
-                    path_vector.push(archive_path);
+
+            if let Ok(image) = self.fclient.screenshot().await {
+                match save_page(record, path, Some(image)).await {
+                    Ok(archive_path) => {
+                        path_vector.push(archive_path);
+                    }
+                    Err(_) => {}
                 }
-                Err(_) => {}
+            } else {
+                match save_page(record, path, None).await {
+                    Ok(archive_path) => {
+                        path_vector.push(archive_path);
+                    }
+                    Err(_) => {}
+                }
             }
         }
         Ok(path_vector)
@@ -90,7 +101,7 @@ impl BasicArchiver {
             .await
             .expect(&format!("fetch_html_record failed \n url {}", url));
 
-        match save_page(record, path, vec![]).await {
+        match save_page(record, path, None).await {
             Ok(archive_path) => Ok(archive_path),
             Err(e) => Err(e),
         }
@@ -100,7 +111,7 @@ impl BasicArchiver {
 pub async fn save_page(
     html_record: HtmlRecord,
     base_path: &str,
-    screenshot: Vec<u8>,
+    screenshot: Option<Vec<u8>>,
 ) -> Result<String, String> {
     let mut body = html_record.body.clone();
     let url = Url::parse(&html_record.origin).unwrap();
@@ -145,8 +156,8 @@ pub async fn save_page(
             let file_name = get_file_name(&link.1);
             if let Ok(css) = fetch_string_resource(&link.1).await {
                 let fqn = format!("{}/css/{}", directory, file_name);
-                let mut output = File::create(fqn).unwrap();
-                if output.write(css.as_bytes()).is_ok() {
+                let mut file = File::create(fqn).unwrap();
+                if file.write(css.as_bytes()).is_ok() {
                     let body_replacement_text = format!("./css/{}", file_name);
                     body = body.replace(&link.0, &body_replacement_text);
                 }
@@ -172,10 +183,10 @@ pub async fn save_page(
         }
     }
     //write screenshot
-    if !screenshot.is_empty() {
+    if let Some(image) = screenshot {
         let fqn_png = format!("{}/screenshot.png", directory);
         let mut file_png = File::create(fqn_png.clone()).unwrap();
-        assert!(file_png.write(&screenshot).is_ok());
+        assert!(file_png.write(&image).is_ok());
     }
 
     //write html
