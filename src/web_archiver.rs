@@ -97,13 +97,13 @@ impl BasicArchiver {
     }
 }
 
-async fn save_page(
-    html_document: HtmlRecord,
+pub async fn save_page(
+    html_record: HtmlRecord,
     base_path: &str,
     screenshot: Vec<u8>,
 ) -> Result<String, String> {
-    let mut body = html_document.body.clone();
-    let url = Url::parse(&html_document.origin).unwrap();
+    let mut body = html_record.body.clone();
+    let url = Url::parse(&html_record.origin).unwrap();
     let root_host_name = url.host().unwrap().to_string();
     let path = url.path();
     let mut base_path = base_path.to_string();
@@ -115,14 +115,14 @@ async fn save_page(
     let mut directory = format!("{}{}", base_path, root_host_name);
 
     if !path.ends_with('/') {
-        directory.push_str(&format!("{}/{}", path, html_document.date_time));
+        directory.push_str(&format!("{}/{}", path, html_record.date_time));
     } else {
-        directory.push_str(&format!("{}{}", path, html_document.date_time));
+        directory.push_str(&format!("{}{}", path, html_record.date_time));
     }
 
     assert!(fs::create_dir_all(directory.clone()).is_ok());
 
-    if let Some(t_image_links) = html_document.get_image_links() {
+    if let Some(t_image_links) = html_record.get_image_links() {
         assert!(fs::create_dir_all(format!("{}/images", directory)).is_ok());
         for link in t_image_links {
             let file_name = get_file_name(&link.1);
@@ -139,7 +139,7 @@ async fn save_page(
     }
 
     //get css
-    if let Some(t_css_links) = html_document.get_css_links() {
+    if let Some(t_css_links) = html_record.get_css_links() {
         assert!(fs::create_dir_all(format!("{}/css", directory)).is_ok());
         for link in t_css_links {
             let file_name = get_file_name(&link.1);
@@ -155,7 +155,7 @@ async fn save_page(
     }
 
     //get js
-    if let Some(t_js_links) = html_document.get_js_links() {
+    if let Some(t_js_links) = html_record.get_js_links() {
         assert!(fs::create_dir(format!("{}/js", directory)).is_ok());
         for t_js_link in t_js_links {
             let file_name = get_file_name(&t_js_link.1);
@@ -195,7 +195,7 @@ fn get_file_name(link: &str) -> String {
     segment_file.to_string()
 }
 
-fn get_capabilities() -> Map<String, Value> {
+pub fn get_capabilities() -> Map<String, Value> {
     let mut caps = Map::new();
     let mut firefox_options = Map::new();
 
