@@ -2,13 +2,11 @@ use crate::client::*;
 use crate::html::HtmlRecord;
 use fantoccini::{Client, ClientBuilder};
 use image;
-use serde_json::{json, map, value, Map, Value};
-use std::collections::HashMap;
+use serde_json::{json, Map, Value};
 use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::time::Duration;
-use thirtyfour::Capabilities;
 use url::Url;
 
 pub struct FantocciniArchiver {
