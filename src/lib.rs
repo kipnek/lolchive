@@ -2,6 +2,7 @@ mod client;
 pub mod html;
 pub mod web_archiver;
 
+//archiver tests
 #[cfg(test)]
 mod tests {
     use crate::web_archiver::{BasicArchiver, FantocciniArchiver};
