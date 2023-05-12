@@ -33,7 +33,7 @@ impl FantocciniCrawler {
         let mut i: usize = 0;
         let mut ret_vec: Vec<String> = vec![];
 
-        while i < num_of_pages && i < visited.len() - 1 {
+        while i < num_of_pages && i < visited.len() {
             if self.fclient.goto(&visited[i]).await.is_err() {
                 i += 1;
                 continue;
@@ -79,7 +79,7 @@ impl BasicCrawler {
         let mut i: usize = 0;
         let mut ret_vec: Vec<String> = vec![];
 
-        while i < num_of_pages && i < visited.len() - 1 {
+        while i < num_of_pages && i < visited.len() {
             if let Ok(record) = client::fetch_html_record(&visited[i]).await {
                 match record.domain_anchors() {
                     Some(links) => {
