@@ -58,7 +58,7 @@ the crawler saves pages it crawls
 Fantoccini Crawler uses fantoccini and the gecko webdriver
 
 ```rust
-            use lolchive::web_archiver::BasicArchiver
+            use lolchive::crawler::FantocciniCrawler
             use dirs;
 
             let url = "https://en.wikipedia.org/wiki/Rust_(programming_language)";
@@ -76,6 +76,9 @@ Fantoccini Crawler uses fantoccini and the gecko webdriver
 Basic Crawler uses reqwest
 
 ```rust
+    use lolchive::crawler::BasicCrawler
+    use dirs;   
+    
     let url = "https://www.rust-lang.org/";
     let home_dir = dirs::home_dir().expect("Failed to get home directory");
     let new_dir = format!("{}{}", home_dir.to_str().unwrap(), "/Projects/archive_test");
