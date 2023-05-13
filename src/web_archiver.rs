@@ -2,9 +2,7 @@ use crate::client::*;
 use crate::html::HtmlRecord;
 use fantoccini::{Client, ClientBuilder};
 use image;
-use lazy_static::lazy_static;
 use rand::{distributions::Alphanumeric, Rng};
-use regex::Regex;
 use serde_json::{json, Map, Value};
 use std::fs;
 use std::fs::File;
@@ -44,8 +42,8 @@ impl FantocciniArchiver {
             .fclient
             .source()
             .await
-            .expect(&format!("can't carse to html {}", url))
-            .replace("&amp;", "&");
+            .expect(&format!("can't carse to html {}", url));
+        let body = replace_chars(body);
 
         let record = HtmlRecord::new(url.to_string(), body);
         match save_page(record, path, Some(screen_shot)).await {
@@ -70,7 +68,7 @@ impl FantocciniArchiver {
             let body: String;
 
             if let Ok(str) = self.fclient.source().await {
-                body = str.replace("&amp;", "&");
+                body = replace_chars(str);
             } else {
                 continue;
             }
@@ -309,4 +307,12 @@ fn random_name_generator() -> String {
         .collect();
 
     s
+}
+
+pub fn replace_chars(body: String) -> String {
+    body.replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&amp;", "&")
+        .replace("&apos", "\'")
 }

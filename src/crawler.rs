@@ -2,8 +2,8 @@ use std::time::Duration;
 
 use crate::client;
 use crate::html::HtmlRecord;
+use crate::web_archiver::get_capabilities;
 use crate::web_archiver::save_page;
-use crate::{client::*, web_archiver::get_capabilities};
 use fantoccini::{Client, ClientBuilder};
 
 pub struct FantocciniCrawler {
@@ -38,6 +38,7 @@ impl FantocciniCrawler {
                 i += 1;
                 continue;
             }
+            let _ = self.fclient.wait().at_most(Duration::from_secs(10));
 
             if let Ok(body) = self.fclient.source().await {
                 let body = body.replace("&amp;", "&");
