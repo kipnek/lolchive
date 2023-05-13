@@ -2,6 +2,24 @@
 
 local liminal page archiver
 
+## doesn't work on windows yet
+
+this will save webpages to your computer to the path you specify
+so
+
+google.com/path/to/this
+is
+```
+google.com/
+        |_/path
+            |_/to
+                |_/this
+                    |_/date
+                        |_index.html
+
+```
+will be the folder path.
+
 ## Use
 
 the fantoccini archiver uses fantoccini which for these purposes use the
