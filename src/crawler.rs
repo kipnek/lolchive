@@ -2,8 +2,7 @@ use std::time::Duration;
 
 use crate::client;
 use crate::html::HtmlRecord;
-use crate::web_archiver::get_capabilities;
-use crate::web_archiver::save_page;
+use crate::web_archiver::{get_capabilities, replace_encoded_chars, save_page};
 use fantoccini::{Client, ClientBuilder};
 
 pub struct FantocciniCrawler {
@@ -11,16 +10,14 @@ pub struct FantocciniCrawler {
 }
 
 impl FantocciniCrawler {
-    pub async fn new(connection_string: &str) -> Self {
+    pub async fn new(connection_string: &str) -> Result<Self, String> {
         let client = ClientBuilder::native()
             .capabilities(get_capabilities())
             .connect(connection_string)
             .await
-            .expect(&format!(
-                "failed to connect to WebDriver on {}",
-                connection_string
-            ));
-        FantocciniCrawler { fclient: client }
+            .unwrap_or_else(|_| panic!("failed to connect to WebDriver on {}", connection_string));
+
+        Ok(FantocciniCrawler { fclient: client })
     }
 
     pub async fn save_crawl(
@@ -41,7 +38,7 @@ impl FantocciniCrawler {
             let _ = self.fclient.wait().at_most(Duration::from_secs(10));
 
             if let Ok(body) = self.fclient.source().await {
-                let body = body.replace("&amp;", "&");
+                let body = replace_encoded_chars(body);
                 let record = HtmlRecord::new(url.to_string(), body);
                 if let Some(links) = record.domain_anchors() {
                     for link in links {
@@ -55,10 +52,8 @@ impl FantocciniCrawler {
                     if let Ok(path) = save_page(record, directory, Some(image)).await {
                         ret_vec.push(path);
                     }
-                } else {
-                    if let Ok(path) = save_page(record, directory, None).await {
-                        ret_vec.push(path);
-                    }
+                } else if let Ok(path) = save_page(record, directory, None).await {
+                    ret_vec.push(path);
                 }
             } else {
                 i += 1;
@@ -85,15 +80,12 @@ impl BasicCrawler {
 
         while i <= num_of_pages && i < visited.len() {
             if let Ok(record) = client::fetch_html_record(&visited[i]).await {
-                match record.domain_anchors() {
-                    Some(links) => {
-                        for link in links {
-                            if !visited.contains(&link) {
-                                visited.push(link)
-                            }
+                if let Some(links) = record.domain_anchors() {
+                    for link in links {
+                        if !visited.contains(&link) {
+                            visited.push(link)
                         }
                     }
-                    None => {}
                 }
                 if let Ok(path) = save_page(record, directory, None).await {
                     ret_vec.push(path);

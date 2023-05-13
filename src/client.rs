@@ -1,4 +1,4 @@
-use crate::html::HtmlRecord;
+use crate::{html::HtmlRecord, web_archiver::replace_encoded_chars};
 use bytes::Bytes;
 use url::Url;
 
@@ -10,9 +10,9 @@ pub async fn fetch_html_record(url_str: &str) -> Result<HtmlRecord, reqwest::Err
     let url_parsed = Url::parse(url_str).expect("cannot parse");
     let res = reqwest::get(url_parsed.as_str()).await?;
     let _status_value = res.status().as_u16();
-
-    let body_value = res.text().await.expect("unable to parse html text");
-    let record: HtmlRecord = HtmlRecord::new(url_parsed.to_string(), body_value);
+    let body = res.text().await.expect("unable to parse html text");
+    let body = replace_encoded_chars(body);
+    let record: HtmlRecord = HtmlRecord::new(url_parsed.to_string(), body);
 
     Ok(record)
 }

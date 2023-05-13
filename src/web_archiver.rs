@@ -20,10 +20,8 @@ impl FantocciniArchiver {
             .capabilities(get_capabilities())
             .connect(connection_string)
             .await
-            .expect(&format!(
-                "failed to connect to WebDriver on {}",
-                connection_string
-            ));
+            .unwrap_or_else(|_| panic!("failed to connect to WebDriver on {}", connection_string));
+
         FantocciniArchiver { fclient: client }
     }
 
@@ -42,8 +40,9 @@ impl FantocciniArchiver {
             .fclient
             .source()
             .await
-            .expect(&format!("can't carse to html {}", url));
-        let body = replace_chars(body);
+            .unwrap_or_else(|_| panic!("can't carse to html {}", url));
+
+        let body = replace_encoded_chars(body);
 
         let record = HtmlRecord::new(url.to_string(), body);
         match save_page(record, path, Some(screen_shot)).await {
@@ -68,7 +67,7 @@ impl FantocciniArchiver {
             let body: String;
 
             if let Ok(str) = self.fclient.source().await {
-                body = replace_chars(str);
+                body = replace_encoded_chars(str);
             } else {
                 continue;
             }
@@ -76,20 +75,13 @@ impl FantocciniArchiver {
             let record = HtmlRecord::new(url.to_string(), body);
 
             if let Ok(image) = self.fclient.screenshot().await {
-                match save_page(record, path, Some(image)).await {
-                    Ok(archive_path) => {
-                        path_vector.push(archive_path);
-                    }
-                    Err(_) => {}
+                if let Ok(archive_path) = save_page(record, path, Some(image)).await {
+                    path_vector.push(archive_path);
                 }
-            } else {
-                match save_page(record, path, None).await {
-                    Ok(archive_path) => {
-                        path_vector.push(archive_path);
-                    }
-                    Err(_) => {}
-                }
+            } else if let Ok(archive_path) = save_page(record, path, None).await {
+                path_vector.push(archive_path);
             }
+    
         }
         Ok(path_vector)
     }
@@ -111,7 +103,7 @@ impl BasicArchiver {
     pub async fn create_archive(url: &str, path: &str) -> Result<String, String> {
         let record = fetch_html_record(url)
             .await
-            .expect(&format!("fetch_html_record failed \n url {}", url));
+            .unwrap_or_else(|_| panic!("fetch_html_record failed \n url {}", url));
 
         match save_page(record, path, None).await {
             Ok(archive_path) => Ok(archive_path),
@@ -224,7 +216,7 @@ pub async fn save_page(
     //write screenshot
     if let Some(image) = screenshot {
         let fqn_png = format!("{}/screenshot.png", directory);
-        let mut file_png = File::create(fqn_png.clone()).unwrap();
+        let mut file_png = File::create(fqn_png).unwrap();
         assert!(file_png.write(&image).is_ok());
     }
 
@@ -232,7 +224,7 @@ pub async fn save_page(
     let fqn_html = format!("{}/index.html", directory);
     let mut file_html = File::create(fqn_html.clone()).unwrap();
     if file_html.write(body.as_bytes()).is_ok() {
-        Ok(fqn_html.to_string())
+        Ok(fqn_html)
     } else {
         Err("error archiving site".to_string())
     }
@@ -309,7 +301,7 @@ fn random_name_generator() -> String {
     s
 }
 
-pub fn replace_chars(body: String) -> String {
+pub fn replace_encoded_chars(body: String) -> String {
     body.replace("&lt;", "<")
         .replace("&gt;", ">")
         .replace("&quot;", "\"")
