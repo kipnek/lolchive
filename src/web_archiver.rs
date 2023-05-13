@@ -15,14 +15,14 @@ pub struct FantocciniArchiver {
 }
 
 impl FantocciniArchiver {
-    pub async fn new(connection_string: &str) -> Self {
+    pub async fn new(connection_string: &str) -> Result<Self, String> {
         let client = ClientBuilder::native()
             .capabilities(get_capabilities())
             .connect(connection_string)
             .await
             .unwrap_or_else(|_| panic!("failed to connect to WebDriver on {}", connection_string));
 
-        FantocciniArchiver { fclient: client }
+        Ok(FantocciniArchiver { fclient: client })
     }
 
     pub async fn create_archive(&self, url: &str, path: &str) -> Result<String, String> {

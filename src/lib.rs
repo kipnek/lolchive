@@ -6,7 +6,10 @@ pub mod web_archiver;
 //archiver tests
 #[cfg(test)]
 mod tests {
-    use crate::web_archiver::{BasicArchiver, FantocciniArchiver};
+    use crate::{
+        crawler::{BasicCrawler, FantocciniCrawler},
+        web_archiver::{BasicArchiver, FantocciniArchiver},
+    };
     use dirs;
 
     macro_rules! aw {
@@ -22,7 +25,7 @@ mod tests {
             let connection_string = "http://localhost:4444";
             let home_dir = dirs::home_dir().expect("Failed to get home directory");
             let new_dir = format!("{}{}", home_dir.to_str().unwrap(), "/Projects/archive_test");
-            let archiver = FantocciniArchiver::new(connection_string).await;
+            let archiver = FantocciniArchiver::new(connection_string).await.unwrap();
 
             match archiver.create_archive(url, &new_dir).await {
                 Ok(path) => {
@@ -48,7 +51,7 @@ mod tests {
             let connection_string = "http://localhost:4444";
             let home_dir = dirs::home_dir().expect("Failed to get home directory");
             let new_dir = format!("{}{}", home_dir.to_str().unwrap(), "/Projects/archive_test");
-            let archiver = FantocciniArchiver::new(connection_string).await;
+            let archiver = FantocciniArchiver::new(connection_string).await.unwrap();
             let paths = archiver.create_archives(urls, &new_dir).await.unwrap();
             let _ = archiver.close().await;
 
@@ -57,7 +60,7 @@ mod tests {
     }
 
     #[test]
-    fn basic() {
+    fn basic_single() {
         aw!(async {
             let url = "https://www.rust-lang.org/";
             let home_dir = dirs::home_dir().expect("Failed to get home directory");
@@ -68,13 +71,31 @@ mod tests {
     }
 
     #[test]
-    fn test_get_string() {
+    fn fantoccini_crawl() {
         aw!(async {
-            let url = "https://en.wikipedia.org/w/load.php?lang=en&modules=site.styles&only=styles&skin=vector-2022";
+            let url = "https://en.wikipedia.org/wiki/Rust_(programming_language)";
+            let connection_string = "http://localhost:4444";
             let home_dir = dirs::home_dir().expect("Failed to get home directory");
             let new_dir = format!("{}{}", home_dir.to_str().unwrap(), "/Projects/archive_test");
+            let fcrawler = FantocciniCrawler::new(connection_string).await.unwrap();
+            let paths = fcrawler.save_crawl(url, &new_dir, 2).await.unwrap();
+            let _ = fcrawler.close().await;
 
-            assert!(BasicArchiver::create_archive(url, &new_dir).await.is_ok());
+            println!("{:?}", paths);
+            assert!(paths.len() == 2);
+        });
+    }
+
+    #[test]
+    fn basic_crawl() {
+        aw!(async {
+            let url = "https://www.rust-lang.org/";
+            let home_dir = dirs::home_dir().expect("Failed to get home directory");
+            let new_dir = format!("{}{}", home_dir.to_str().unwrap(), "/Projects/archive_test");
+            let paths = BasicCrawler::save_crawl(url, &new_dir, 2).await.unwrap();
+
+            println!("{:?}", paths);
+            assert!(paths.len() == 2);
         });
     }
 }
