@@ -6,10 +6,7 @@ pub mod web_archiver;
 //archiver tests
 #[cfg(test)]
 mod tests {
-    use crate::{
-        client::{fetch_html_record, fetch_string_resource},
-        web_archiver::{BasicArchiver, FantocciniArchiver},
-    };
+    use crate::web_archiver::{BasicArchiver, FantocciniArchiver};
     use dirs;
 
     macro_rules! aw {

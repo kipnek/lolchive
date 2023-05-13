@@ -30,11 +30,6 @@ impl FantocciniArchiver {
             return Err(format!("could not go to url {}", url));
         }
         let _ = self.fclient.wait().at_most(Duration::from_secs(10));
-        let screen_shot = self
-            .fclient
-            .screenshot()
-            .await
-            .expect("could not screenshot");
 
         let body = self
             .fclient
@@ -45,9 +40,17 @@ impl FantocciniArchiver {
         let body = replace_encoded_chars(body);
 
         let record = HtmlRecord::new(url.to_string(), body);
-        match save_page(record, path, Some(screen_shot)).await {
-            Ok(archive_path) => Ok(archive_path),
-            Err(e) => Err(e),
+
+        if let Ok(screen_shot) = self.fclient.screenshot().await {
+            match save_page(record, path, Some(screen_shot)).await {
+                Ok(archive_path) => Ok(archive_path),
+                Err(e) => Err(e),
+            }
+        } else {
+            match save_page(record, path, None).await {
+                Ok(archive_path) => Ok(archive_path),
+                Err(e) => Err(e),
+            }
         }
     }
 
@@ -81,7 +84,6 @@ impl FantocciniArchiver {
             } else if let Ok(archive_path) = save_page(record, path, None).await {
                 path_vector.push(archive_path);
             }
-    
         }
         Ok(path_vector)
     }
@@ -124,10 +126,12 @@ pub async fn save_page(
     let mut base_path = base_path.to_string();
 
     if !base_path.ends_with('/') {
-        base_path.push_str("/");
+        //base_path.push_str("/");
+        base_path.push('/');
     }
     if !a_path.ends_with('/') {
-        a_path.push_str("/");
+        //a_path.push_str("/");
+        a_path.push('/');
     }
 
     let directory = format!(
