@@ -2,6 +2,9 @@ use crate::client::*;
 use crate::html::HtmlRecord;
 use fantoccini::{Client, ClientBuilder};
 use image;
+use lazy_static::lazy_static;
+use rand::{distributions::Alphanumeric, Rng};
+use regex::Regex;
 use serde_json::{json, Map, Value};
 use std::fs;
 use std::fs::File;
@@ -31,7 +34,6 @@ impl FantocciniArchiver {
             return Err(format!("could not go to url {}", url));
         }
         let _ = self.fclient.wait().at_most(Duration::from_secs(10));
-
         let screen_shot = self
             .fclient
             .screenshot()
@@ -136,13 +138,26 @@ pub async fn save_page(
     if let Some(t_image_links) = html_record.get_image_links() {
         assert!(fs::create_dir_all(format!("{}/images", directory)).is_ok());
         for link in t_image_links {
-            let file_name = get_file_name(&link.1);
             if let Ok(img_bytes) = fetch_image_bytes(&link.1).await {
                 if let Ok(tmp_image) = image::load_from_memory(&img_bytes) {
-                    let fqn = format!("{}/images/{}", directory, file_name);
-                    if tmp_image.save(fqn).is_ok() {
-                        let body_replacement_text = format!("./images/{}", file_name);
-                        body = body.replace(&link.0, &body_replacement_text);
+                    if let Some(file_name) = get_file_name(&link.1) {
+                        let fqn = format!("{}/images/{}", directory, file_name);
+                        if tmp_image.save(fqn).is_ok() {
+                            let body_replacement_text = format!("./images/{}", file_name);
+                            body = body.replace(&link.0, &body_replacement_text);
+                        }
+                    } else {
+                        let mut file_name = random_name_generator();
+                        file_name.push_str(".png");
+                        let fqn = format!("{}/images/{}", directory, file_name);
+
+                        if tmp_image
+                            .save_with_format(fqn, image::ImageFormat::Png)
+                            .is_ok()
+                        {
+                            let body_replacement_text = format!("./images/{}", file_name);
+                            body = body.replace(&link.0, &body_replacement_text);
+                        }
                     }
                 }
             }
@@ -153,12 +168,21 @@ pub async fn save_page(
     if let Some(t_css_links) = html_record.get_css_links() {
         assert!(fs::create_dir_all(format!("{}/css", directory)).is_ok());
         for link in t_css_links {
-            let file_name = get_file_name(&link.1);
+            let mut file_name = match get_file_name(&link.1) {
+                Some(e) => e,
+                None => {
+                    let mut file = random_name_generator();
+                    file.push_str(".css");
+                    file
+                }
+            };
             if let Ok(css) = fetch_string_resource(&link.1).await {
                 let fqn = format!("{}/css/{}", directory, file_name);
+                println!("{:?}", fqn);
                 let mut file = File::create(fqn).unwrap();
                 if file.write(css.as_bytes()).is_ok() {
                     let body_replacement_text = format!("./css/{}", file_name);
+                    println!("{:?}", link.0);
                     body = body.replace(&link.0, &body_replacement_text);
                 }
             }
@@ -168,15 +192,22 @@ pub async fn save_page(
     //get js
     if let Some(t_js_links) = html_record.get_js_links() {
         assert!(fs::create_dir(format!("{}/js", directory)).is_ok());
-        for t_js_link in t_js_links {
-            let file_name = get_file_name(&t_js_link.1);
-            if let Ok(css) = fetch_string_resource(&t_js_link.1).await {
+        for link in t_js_links {
+            let file_name = match get_file_name(&link.1) {
+                Some(e) => e,
+                None => {
+                    let mut file = random_name_generator();
+                    file.push_str(".js");
+                    file
+                }
+            };
+            if let Ok(css) = fetch_string_resource(&link.1).await {
                 let fqn = format!("{}/js/{}", directory, file_name);
 
                 if let Ok(mut output) = File::create(fqn) {
                     if output.write(css.as_bytes()).is_ok() {
                         let body_replacement_text = format!("./js/{}", file_name);
-                        body = body.replace(&t_js_link.0, &body_replacement_text);
+                        body = body.replace(&link.0, &body_replacement_text);
                     }
                 }
             }
@@ -199,11 +230,16 @@ pub async fn save_page(
     }
 }
 
-fn get_file_name(link: &str) -> String {
+fn get_file_name(link: &str) -> Option<String> {
     let urlp = Url::parse(link).unwrap();
-    let segment_vector = urlp.path_segments().map(|c| c.collect::<Vec<_>>()).unwrap();
-    let segment_file = *segment_vector.last().unwrap();
-    segment_file.to_string()
+
+    if urlp.query().is_some() {
+        None
+    } else {
+        let segment_vector = urlp.path_segments().map(|c| c.collect::<Vec<_>>()).unwrap();
+        let segment_file = *segment_vector.last().unwrap();
+        Some(segment_file.to_string())
+    }
 }
 
 pub fn get_capabilities() -> Map<String, Value> {
@@ -253,4 +289,14 @@ pub fn get_capabilities() -> Map<String, Value> {
         Value::Object(firefox_options),
     );
     caps
+}
+
+fn random_name_generator() -> String {
+    let s: String = rand::thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(7)
+        .map(char::from)
+        .collect();
+
+    s
 }

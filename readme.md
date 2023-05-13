@@ -7,7 +7,9 @@ local liminal page archiver
 the fantoccini archiver uses fantoccini which for these purposes use the
 geckodriver the basic archiver just uses reqwest
 
-FantocciniArchiver
+doesn't run on windows yet.
+
+FantocciniArchiver (Fantoccini and a running geckodriver)
 
 ```rust
     use lolchive::web_archiver::FantocciniArchiver
@@ -34,7 +36,7 @@ FantocciniArchiver
     let _ = archiver.close().await;
 ```
 
-Basic Archiver
+Basic Archiver (Just uses reqwest)
 
 ```rust
     use lolchive::web_archiver::BasicArchiver
