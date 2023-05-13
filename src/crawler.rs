@@ -40,6 +40,7 @@ impl FantocciniCrawler {
             }
 
             if let Ok(body) = self.fclient.source().await {
+                let body = body.replace("&amp;", "&");
                 let record = HtmlRecord::new(url.to_string(), body);
                 if let Some(links) = record.domain_anchors() {
                     for link in links {
@@ -49,14 +50,11 @@ impl FantocciniCrawler {
                     }
                 }
 
-                if let Ok(image) = self
-                .fclient
-                .screenshot()
-                .await {
+                if let Ok(image) = self.fclient.screenshot().await {
                     if let Ok(path) = save_page(record, directory, Some(image)).await {
                         ret_vec.push(path);
                     }
-                }else{
+                } else {
                     if let Ok(path) = save_page(record, directory, None).await {
                         ret_vec.push(path);
                     }

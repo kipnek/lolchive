@@ -39,8 +39,13 @@ impl FantocciniArchiver {
             .screenshot()
             .await
             .expect("could not screenshot");
-        let body = self.fclient.source().await.expect("can't carse to html");
-        let body = body.replace("&amp;", "&");
+
+        let body = self
+            .fclient
+            .source()
+            .await
+            .expect(&format!("can't carse to html {}", url))
+            .replace("&amp;", "&");
 
         let record = HtmlRecord::new(url.to_string(), body);
         match save_page(record, path, Some(screen_shot)).await {
