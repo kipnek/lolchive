@@ -234,14 +234,13 @@ pub async fn save_page(
 
 fn get_file_name(link: &str) -> Option<String> {
     let urlp = Url::parse(link).unwrap();
-
     if urlp.query().is_some() {
-        None
-    } else {
-        let segment_vector = urlp.path_segments().map(|c| c.collect::<Vec<_>>()).unwrap();
+        return None;
+    } else if let Some(segment_vector) = urlp.path_segments().map(|c| c.collect::<Vec<_>>()) {
         let segment_file = *segment_vector.last().unwrap();
-        Some(segment_file.to_string())
+        return Some(segment_file.to_string());
     }
+    None
 }
 
 pub fn get_capabilities() -> Map<String, Value> {
@@ -299,7 +298,6 @@ fn random_name_generator() -> String {
         .take(7)
         .map(char::from)
         .collect();
-
     s
 }
 
