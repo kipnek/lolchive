@@ -126,11 +126,9 @@ pub async fn save_page(
     let mut base_path = base_path.to_string();
 
     if !base_path.ends_with('/') {
-        //base_path.push_str("/");
         base_path.push('/');
     }
     if !a_path.ends_with('/') {
-        //a_path.push_str("/");
         a_path.push('/');
     }
 
