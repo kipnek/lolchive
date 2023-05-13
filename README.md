@@ -17,6 +17,9 @@ google.com/
             |_/to
                 |_/this
                     |_/date
+                        |/css
+                        |/images
+                        |/js
                         |_index.html
 
 ```
