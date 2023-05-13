@@ -40,6 +40,7 @@ impl FantocciniArchiver {
             .await
             .expect("could not screenshot");
         let body = self.fclient.source().await.expect("can't carse to html");
+        let body = body.replace("&amp;", "&");
 
         let record = HtmlRecord::new(url.to_string(), body);
         match save_page(record, path, Some(screen_shot)).await {
@@ -61,7 +62,13 @@ impl FantocciniArchiver {
             }
             let _ = self.fclient.wait().at_most(Duration::from_secs(10));
 
-            let body = self.fclient.source().await.expect("can't carse to html");
+            let body: String;
+
+            if let Ok(str) = self.fclient.source().await {
+                body = str.replace("&amp;", "&");
+            } else {
+                continue;
+            }
 
             let record = HtmlRecord::new(url.to_string(), body);
 
@@ -118,20 +125,20 @@ pub async fn save_page(
     let mut body = html_record.body.clone();
     let url = Url::parse(&html_record.origin).unwrap();
     let root_host_name = url.host().unwrap().to_string();
-    let path = url.path();
+    let mut a_path = url.path().to_string();
     let mut base_path = base_path.to_string();
 
     if !base_path.ends_with('/') {
         base_path.push_str("/");
     }
-
-    let mut directory = format!("{}{}", base_path, root_host_name);
-
-    if !path.ends_with('/') {
-        directory.push_str(&format!("{}/{}", path, html_record.date_time));
-    } else {
-        directory.push_str(&format!("{}{}", path, html_record.date_time));
+    if !a_path.ends_with('/') {
+        a_path.push_str("/");
     }
+
+    let directory = format!(
+        "{}{}{}{}",
+        base_path, root_host_name, a_path, html_record.date_time
+    );
 
     assert!(fs::create_dir_all(directory.clone()).is_ok());
 
@@ -168,7 +175,7 @@ pub async fn save_page(
     if let Some(t_css_links) = html_record.get_css_links() {
         assert!(fs::create_dir_all(format!("{}/css", directory)).is_ok());
         for link in t_css_links {
-            let mut file_name = match get_file_name(&link.1) {
+            let file_name = match get_file_name(&link.1) {
                 Some(e) => e,
                 None => {
                     let mut file = random_name_generator();
@@ -178,11 +185,9 @@ pub async fn save_page(
             };
             if let Ok(css) = fetch_string_resource(&link.1).await {
                 let fqn = format!("{}/css/{}", directory, file_name);
-                println!("{:?}", fqn);
                 let mut file = File::create(fqn).unwrap();
                 if file.write(css.as_bytes()).is_ok() {
                     let body_replacement_text = format!("./css/{}", file_name);
-                    println!("{:?}", link.0);
                     body = body.replace(&link.0, &body_replacement_text);
                 }
             }

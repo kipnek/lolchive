@@ -77,9 +77,6 @@ mod tests {
             let home_dir = dirs::home_dir().expect("Failed to get home directory");
             let new_dir = format!("{}{}", home_dir.to_str().unwrap(), "/Projects/archive_test");
 
-            //let css = fetch_string_resource(url).await;
-            //let record = fetch_html_record(url);
-            //println!("{:?}", css);
             assert!(BasicArchiver::create_archive(url, &new_dir).await.is_ok());
         });
     }

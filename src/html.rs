@@ -183,7 +183,6 @@ impl HtmlRecord {
         let selector = Selector::parse(tag).unwrap();
         for element in self.html.select(&selector) {
             ret_vec.push(element.html());
-            println!("{:?}", element.html())
         }
         if !ret_vec.is_empty() {
             Some(ret_vec)
