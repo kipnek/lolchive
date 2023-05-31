@@ -60,6 +60,52 @@ impl FantocciniCrawler {
         }
         Ok(ret_vec)
     }
+
+    pub async fn crawl_curate(
+        &self,
+        url: &str,
+        directory: &str,
+        num_of_pages: usize,
+        reg: &str,
+    ) -> Result<Vec<String>, String> {
+        let mut visited: Vec<String> = vec![url.to_string()];
+        let mut i: usize = 0;
+        let mut ret_vec: Vec<String> = vec![];
+        let regex = match Regex::new(reg) {
+            Ok(re) => re,
+            Err(e) => return Err(e.to_string()),
+        };
+
+        while i < num_of_pages && i < visited.len() {
+            if self.fclient.goto(&visited[i]).await.is_err() {
+                i += 1;
+                continue;
+            }
+            let _ = self.fclient.wait().at_most(Duration::from_secs(10));
+
+            if let Ok(body) = self.fclient.source().await {
+                let body = replace_encoded_chars(body);
+                let record = HtmlRecord::new(visited[i].to_string(), body);
+                if let Some(links) = record.anchors_curate(regex.clone()) {
+                    for link in links {
+                        if !visited.contains(&link) {
+                            visited.push(link)
+                        }
+                    }
+                }
+
+                if let Ok(image) = self.fclient.screenshot().await {
+                    if let Ok(path) = save_page(record, directory, Some(image)).await {
+                        ret_vec.push(path);
+                    }
+                } else if let Ok(path) = save_page(record, directory, None).await {
+                    ret_vec.push(path);
+                }
+            }
+            i += 1;
+        }
+        Ok(ret_vec)
+    }
     pub async fn close(self) -> Result<(), String> {
         if self.fclient.close().await.is_ok() {
             Ok(())
