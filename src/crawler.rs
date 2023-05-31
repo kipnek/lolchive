@@ -1,9 +1,9 @@
-use std::time::Duration;
-
 use crate::client;
 use crate::html::HtmlRecord;
 use crate::web_archiver::{get_capabilities, replace_encoded_chars, save_page};
 use fantoccini::{Client, ClientBuilder};
+use regex::Regex;
+use std::time::Duration;
 
 pub struct FantocciniCrawler {
     pub fclient: Client,
@@ -31,7 +31,6 @@ impl FantocciniCrawler {
         let mut ret_vec: Vec<String> = vec![];
 
         while i < num_of_pages && i < visited.len() {
-            println!("{:?}", visited[i]);
             if self.fclient.goto(&visited[i]).await.is_err() {
                 i += 1;
                 continue;
@@ -88,6 +87,34 @@ impl BasicCrawler {
         while i < num_of_pages && i < visited.len() {
             if let Ok(record) = client::fetch_html_record(&visited[i]).await {
                 if let Some(links) = record.domain_anchors() {
+                    for link in links {
+                        if !visited.contains(&link) {
+                            visited.push(link)
+                        }
+                    }
+                }
+                if let Ok(path) = save_page(record, directory, None).await {
+                    ret_vec.push(path);
+                }
+            }
+            i += 1;
+        }
+        Ok(ret_vec)
+    }
+    pub async fn crawl_curated(
+        url: &str,
+        directory: &str,
+        num_of_pages: usize,
+        reg: &str,
+    ) -> Result<Vec<String>, String> {
+        let mut visited: Vec<String> = vec![url.to_string()];
+        let mut i: usize = 0;
+        let mut ret_vec: Vec<String> = vec![];
+        let regex = Regex::new(reg).unwrap();
+
+        while i < num_of_pages && i < visited.len() {
+            if let Ok(record) = client::fetch_html_record(&visited[i]).await {
+                if let Some(links) = record.anchors_curate(regex.clone()) {
                     for link in links {
                         if !visited.contains(&link) {
                             visited.push(link)

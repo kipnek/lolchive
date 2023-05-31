@@ -121,20 +121,20 @@ pub async fn save_page(
 ) -> Result<String, String> {
     let mut body = html_record.body.clone();
     let url = Url::parse(&html_record.origin).unwrap();
-    let root_host_name = url.host().unwrap().to_string();
-    let mut a_path = url.path().to_string();
+    let host_name = url.host().unwrap().to_string();
+    let mut url_path = url.path().to_string();
     let mut base_path = base_path.to_string();
 
     if !base_path.ends_with('/') {
         base_path.push('/');
     }
-    if !a_path.ends_with('/') {
-        a_path.push('/');
+    if !url_path.ends_with('/') {
+        url_path.push('/');
     }
 
     let directory = format!(
         "{}{}{}{}",
-        base_path, root_host_name, a_path, html_record.date_time
+        base_path, host_name, url_path, html_record.date_time
     );
 
     assert!(fs::create_dir_all(directory.clone()).is_ok());

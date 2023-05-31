@@ -127,32 +127,27 @@ impl HtmlRecord {
     /// inputs: &self and regex &str.
     /// returns a hashset<string>,
     /// used for when trying to crawl things like online threads.
-    pub fn anchors_curate(&self, regex: &str) -> Option<HashSet<String>> {
+    pub fn anchors_curate(&self, re: Regex) -> Option<HashSet<String>> {
         let mut ret_vec: Vec<String> = vec![];
-        if let Ok(re) = Regex::new(regex) {
-            let selector = Selector::parse("a").unwrap();
-            for element in self.html.select(&selector) {
-                match element.value().attr("href") {
-                    Some(link) => {
-                        if let Ok(parsed_link) = HtmlRecord::check_link(&self.origin, link) {
-                            if re.is_match(&parsed_link) && !HtmlRecord::has_extension(&parsed_link)
-                            {
-                                ret_vec.push(parsed_link);
-                            }
+        let selector = Selector::parse("a").unwrap();
+        for element in self.html.select(&selector) {
+            match element.value().attr("href") {
+                Some(link) => {
+                    if let Ok(parsed_link) = HtmlRecord::check_link(&self.origin, link) {
+                        if re.is_match(&parsed_link) && !HtmlRecord::has_extension(&parsed_link) {
+                            ret_vec.push(parsed_link);
                         }
                     }
-                    None => continue,
-                };
-            }
-            let link_hashset: HashSet<String> = ret_vec.iter().cloned().collect();
+                }
+                None => continue,
+            };
+        }
+        let link_hashset: HashSet<String> = ret_vec.iter().cloned().collect();
 
-            if link_hashset.is_empty() {
-                None
-            } else {
-                Some(link_hashset)
-            }
-        } else {
+        if link_hashset.is_empty() {
             None
+        } else {
+            Some(link_hashset)
         }
     }
 
