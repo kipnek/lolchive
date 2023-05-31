@@ -110,7 +110,10 @@ impl BasicCrawler {
         let mut visited: Vec<String> = vec![url.to_string()];
         let mut i: usize = 0;
         let mut ret_vec: Vec<String> = vec![];
-        let regex = Regex::new(reg).unwrap();
+        let regex = match Regex::new(reg) {
+            Ok(re) => re,
+            Err(e) => return Err(e.to_string()),
+        };
 
         while i < num_of_pages && i < visited.len() {
             if let Ok(record) = client::fetch_html_record(&visited[i]).await {
